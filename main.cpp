@@ -25,6 +25,8 @@ private:
 
 public:
   dataBase(string n) : name(n) {
+    dbFile.open(name+".meta",ios::out);
+    dbFile.close();
     dbFile.open(name + ".meta", ios::in | ios::out);
   }
 
@@ -152,8 +154,7 @@ public:
           }
         }
       } else if (colInfo.dataType == "bool") {
-        if (!(value == "true" || value == "false" || value == "0" ||
-              value == "1")) {
+        if (!(value == "true" || value == "false")) {
           cerr << "Invalid bool value for column " << colName << ": " << value
                << "\n";
           return;
