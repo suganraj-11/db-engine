@@ -17,9 +17,9 @@ struct tableInfo {
   unordered_map<string, columnInfo> columns;
 };
 
-struct tableInfo2{
+struct tableInfo2 {
   int columnCount;
-  vector<pair<string,columnInfo>> columns;
+  vector<pair<string, columnInfo>> columns;
 };
 
 class dataBase {
@@ -31,7 +31,7 @@ private:
 
 public:
   dataBase(string n) : name(n) {
-    dbFile.open(name+".meta",ios::out);
+    dbFile.open(name + ".meta", ios::out);
     dbFile.close();
     dbFile.open(name + ".meta", ios::in | ios::out);
   }
@@ -69,7 +69,7 @@ public:
       tinfo2.columnCount = stoi(columnCountStr);
 
       string colLine;
-      int i=0;
+      int i = 0;
       while (getline(metaFile, colLine)) {
         stringstream iss(colLine);
         string colName, colType, sizeStr;
@@ -77,7 +77,7 @@ public:
 
         int colSize = stoi(sizeStr);
         tinfo.columns[colName] = {colType, colSize};
-        tinfo2.columns[i] = {colName,{colType,colSize}};
+        tinfo2.columns[i] = {colName, {colType, colSize}};
         i++;
       }
 
@@ -90,8 +90,7 @@ public:
     dbFile.seekg(0);
   }
 
-  void createTable(string tableName,
-                   vector<pair<string,columnInfo>> columns) {
+  void createTable(string tableName, vector<pair<string, columnInfo>> columns) {
     // 1. Check if table already exists
     unordered_map<string, columnInfo> columnFortables;
     if (tables.find(tableName) != tables.end()) {
@@ -111,7 +110,7 @@ public:
 
     // 4. Write each column's metadata: colName dataType size (as string)
     for (const auto &col : columns) {
-      columnFortables[col.first]=col.second;
+      columnFortables[col.first] = col.second;
       metaFile << col.first << " " << col.second.dataType << " "
                << to_string(col.second.size) << "\n";
     }
@@ -121,8 +120,8 @@ public:
     // 5. Add table to in-memory tables map
     tableInfo tinfo;
     tableInfo2 tinfo2;
-    tinfo2.columnCount=columns.size();
-    tinfo2.columns=columns;
+    tinfo2.columnCount = columns.size();
+    tinfo2.columns = columns;
     tinfo.columnCount = columns.size();
     tinfo.columns = columnFortables;
     tables[tableName] = tinfo;
@@ -209,45 +208,59 @@ public:
     insert(tableName, values);
   }
 
-  void insert(const string &tableName, const vector<string> &values) {
-    if (tables.find(tableName) == tables.end()) {
-      cerr << "Table '" << tableName << "' not found.\n";
+  void insert(string tableName, const vector<string> &values) {
+    fstream metaFile(tableName + ".tbl", ios::out | ios::binary | ios::app);
+    if (!metaFile.is_open()) {
+      cout << endl << "Error opening table file for insertion" << endl;
+      metaFile.close();
       return;
     }
 
-    const tableInfo &tinfo = tables[tableName];
-
-    // Open .tbl file in binary append mode
-    fstream dataFile(tableName + ".tbl", ios::out | ios::binary | ios::app);
-    if (!dataFile.is_open()) {
-      cerr << "Failed to open .tbl file for table: " << tableName << endl;
-      return;
+    for (int i = 0; i < values.size(); i++) {
+      string padded = values[i].substr(0, tables2[tableName].columns[i].second.size);
+      padded.resize(tables2[tableName].columns[i].second.size, '\0');
+      metaFile.write(padded.c_str(), tables2[tableName].columns[i].second.size);
     }
-
-    // Preserve column order
-    vector<pair<string, columnInfo>> orderedColumns;
-    for (const auto &col : tinfo.columns) {
-      orderedColumns.push_back(col);
-    }
-
-    for (size_t i = 0; i < values.size(); ++i) {
-      const string &val = values[i];
-      const columnInfo &col = orderedColumns[i].second;
-
-      // Pad/truncate the value to the defined column size
-      string padded = val.substr(0, col.size);
-      padded.resize(col.size, '\0'); // pad with null characters
-
-      // Write to binary file
-      dataFile.write(padded.c_str(), col.size);
-    }
-
-    dataFile.close();
+    metaFile.close();
+    return;
   }
+
+  // void insert(const string &tableName, const vector<string> &values) {
+  //   if (tables.find(tableName) == tables.end()) {
+  //     cerr << "Table '" << tableName << "' not found.\n";
+  //     return;
+  //   }
+  //
+  //   const tableInfo &tinfo = tables[tableName];
+  //
+  //   // Open .tbl file in binary append mode
+  //   fstream dataFile(tableName + ".tbl", ios::out | ios::binary | ios::app);
+  //   if (!dataFile.is_open()) {
+  //     cerr << "Failed to open .tbl file for table: " << tableName << endl;
+  //     return;
+  //   }
+  //
+  //   // Preserve column order
+  //   vector<pair<string, columnInfo>> orderedColumns;
+  //   for (const auto &col : tinfo.columns) {
+  //     orderedColumns.push_back(col);
+  //   }
+  //
+  //   for (size_t i = 0; i < values.size(); ++i) {
+  //     const string &val = values[i];
+  //     const columnInfo &col = orderedColumns[i].second;
+  //
+  //     // Pad/truncate the value to the defined column size
+  //     string padded = val.substr(0, col.size);
+  //     padded.resize(col.size, '\0'); // pad with null characters
+  //
+  //     // Write to binary file
+  //     dataFile.write(padded.c_str(), col.size);
+  //   }
+  //
+  //   dataFile.close();
+  // }
 };
-
-
-
 
 int main() {
   // Create database
@@ -257,21 +270,21 @@ int main() {
   db.loadTables();
 
   // Define columns for a new table
-  vector<pair<string,columnInfo>> columns;
+  vector<pair<string, columnInfo>> columns;
   // columns["active"] = {"bool", 5};     // "true"/"false" or "0"/"1"
   // columns["name"] = {"string", 10};    // up to 10 characters
   // columns["id"] = {"int", 3};          // max value = 999
   // columns["age"] = {"bool",5};
-  columns.push_back({"active",{"bool",5}});
-  columns.push_back({"id",{"int",3}});
-  columns.push_back({"name",{"string",10}});
-  columns.push_back({"age",{"int",3}});
+  columns.push_back({"active", {"bool", 5}});
+  columns.push_back({"id", {"int", 3}});
+  columns.push_back({"name", {"string", 10}});
+  columns.push_back({"age", {"int", 3}});
 
   // Create a table called "users"
   db.createTable("users", columns);
 
   // Insert a valid row into the "users" table
-  vector<string> row1 = {"false","101", "alice", "20"};
+  vector<string> row1 = {"false", "101", "alice", "20"};
   db.insertIntoTable("users", row1);
 
   return 0;
