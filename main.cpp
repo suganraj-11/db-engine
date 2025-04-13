@@ -76,7 +76,8 @@ public:
     dbFile.seekg(0);
   }
 
-  void createTable(string tableName,unordered_map<string, columnInfo> columns) {
+  void createTable(string tableName,
+                   unordered_map<string, columnInfo> columns) {
     // 1. Check if table already exists
     if (tables.find(tableName) != tables.end()) {
       cerr << "Table '" << tableName << "' already exists.\n";
@@ -185,6 +186,42 @@ public:
     }
 
     // All checks passed, insert the data
-    // insert(tableName, values);
+    insert(tableName, values);
+  }
+
+  void insert(const string &tableName, const vector<string> &values) {
+    if (tables.find(tableName) == tables.end()) {
+      cerr << "Table '" << tableName << "' not found.\n";
+      return;
+    }
+
+    const tableInfo &tinfo = tables[tableName];
+
+    // Open .tbl file in binary append mode
+    fstream dataFile(tableName + ".tbl", ios::out | ios::binary | ios::app);
+    if (!dataFile.is_open()) {
+      cerr << "Failed to open .tbl file for table: " << tableName << endl;
+      return;
+    }
+
+    // Preserve column order
+    vector<pair<string, columnInfo>> orderedColumns;
+    for (const auto &col : tinfo.columns) {
+      orderedColumns.push_back(col);
+    }
+
+    for (size_t i = 0; i < values.size(); ++i) {
+      const string &val = values[i];
+      const columnInfo &col = orderedColumns[i].second;
+
+      // Pad/truncate the value to the defined column size
+      string padded = val.substr(0, col.size);
+      padded.resize(col.size, '\0'); // pad with null characters
+
+      // Write to binary file
+      dataFile.write(padded.c_str(), col.size);
+    }
+
+    dataFile.close();
   }
 };
