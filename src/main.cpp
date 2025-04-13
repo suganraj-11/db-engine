@@ -17,11 +17,17 @@ struct tableInfo {
   unordered_map<string, columnInfo> columns;
 };
 
+struct tableInfo2{
+  int columnCount;
+  vector<pair<string,columnInfo>> columns;
+};
+
 class dataBase {
 private:
   string name;
   fstream dbFile;
   unordered_map<string, tableInfo> tables;
+  unordered_map<string, tableInfo2> tables2;
 
 public:
   dataBase(string n) : name(n) {
@@ -58,9 +64,12 @@ public:
       metaHeader >> nameFromFile >> columnCountStr;
 
       tableInfo tinfo;
+      tableInfo2 tinfo2;
       tinfo.columnCount = stoi(columnCountStr);
+      tinfo2.columnCount = stoi(columnCountStr);
 
       string colLine;
+      int i=0;
       while (getline(metaFile, colLine)) {
         stringstream iss(colLine);
         string colName, colType, sizeStr;
@@ -68,9 +77,12 @@ public:
 
         int colSize = stoi(sizeStr);
         tinfo.columns[colName] = {colType, colSize};
+        tinfo2.columns[i] = {colName,{colType,colSize}};
+        i++;
       }
 
       tables[tableName] = tinfo;
+      tables2[tableName] = tinfo2;
       metaFile.close();
     }
 
@@ -79,8 +91,9 @@ public:
   }
 
   void createTable(string tableName,
-                   unordered_map<string, columnInfo> columns) {
+                   vector<pair<string,columnInfo>> columns) {
     // 1. Check if table already exists
+    unordered_map<string, columnInfo> columnFortables;
     if (tables.find(tableName) != tables.end()) {
       cerr << "Table '" << tableName << "' already exists.\n";
       return;
@@ -98,6 +111,7 @@ public:
 
     // 4. Write each column's metadata: colName dataType size (as string)
     for (const auto &col : columns) {
+      columnFortables[col.first]=col.second;
       metaFile << col.first << " " << col.second.dataType << " "
                << to_string(col.second.size) << "\n";
     }
@@ -106,9 +120,13 @@ public:
 
     // 5. Add table to in-memory tables map
     tableInfo tinfo;
+    tableInfo2 tinfo2;
+    tinfo2.columnCount=columns.size();
+    tinfo2.columns=columns;
     tinfo.columnCount = columns.size();
-    tinfo.columns = columns;
+    tinfo.columns = columnFortables;
     tables[tableName] = tinfo;
+    tables2[tableName] = tinfo2;
 
     // 6. Append this table name to the main DB metadata file
     dbFile.clear();            // clear EOF flag if set
@@ -123,27 +141,27 @@ public:
       return;
     }
 
-    tableInfo &tinfo = tables[tableName];
+    tableInfo2 &tinfo2 = tables2[tableName];
 
     // 2. Check if value count matches column count
-    if (values.size() != tinfo.columnCount) {
-      cerr << "Expected " << tinfo.columnCount << " values, but got "
+    if (values.size() != tinfo2.columnCount) {
+      cerr << "Expected " << tinfo2.columnCount << " values, but got "
            << values.size() << ".\n";
       return;
     }
 
     // 3. Get column info in insertion order
-    vector<pair<string, columnInfo>> columnList;
-    for (const auto &col : tinfo.columns) {
-      columnList.push_back(col);
-      cout<<col.first<<endl;
-    }
+    // vector<pair<string, columnInfo>> columnList;
+    // for (const auto &col : tinfo.columns) {
+    //   columnList.push_back(col);
+    //   cout<<col.first<<endl;
+    // }
 
     // 4. Validate each value
     for (int i = 0; i < values.size(); ++i) {
       string value = values[i];
-      string colName = columnList[i].first;
-      columnInfo &colInfo = columnList[i].second;
+      string colName = tinfo2.columns[i].first;
+      columnInfo &colInfo = tinfo2.columns[i].second;
 
       // Type check
       if (colInfo.dataType == "int") {
@@ -239,17 +257,21 @@ int main() {
   db.loadTables();
 
   // Define columns for a new table
-  unordered_map<string, columnInfo> columns;
-  columns["active"] = {"bool", 5};     // "true"/"false" or "0"/"1"
-  columns["name"] = {"string", 10};    // up to 10 characters
-  columns["id"] = {"int", 3};          // max value = 999
-  columns["age"] = {"bool",5};
+  vector<pair<string,columnInfo>> columns;
+  // columns["active"] = {"bool", 5};     // "true"/"false" or "0"/"1"
+  // columns["name"] = {"string", 10};    // up to 10 characters
+  // columns["id"] = {"int", 3};          // max value = 999
+  // columns["age"] = {"bool",5};
+  columns.push_back({"active",{"bool",5}});
+  columns.push_back({"id",{"int",3}});
+  columns.push_back({"name",{"string",10}});
+  columns.push_back({"age",{"int",3}});
 
   // Create a table called "users"
   db.createTable("users", columns);
 
   // Insert a valid row into the "users" table
-  vector<string> row1 = {"false","101", "alice", "true"};
+  vector<string> row1 = {"false","101", "alice", "20"};
   db.insertIntoTable("users", row1);
 
   return 0;
