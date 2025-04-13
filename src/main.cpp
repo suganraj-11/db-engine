@@ -215,6 +215,8 @@ public:
       metaFile.close();
       return;
     }
+    char flag = 1;
+    metaFile.write(&flag,1);
 
     for (int i = 0; i < values.size(); i++) {
       string padded = values[i].substr(0, tables2[tableName].columns[i].second.size);
