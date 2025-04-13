@@ -136,6 +136,7 @@ public:
     vector<pair<string, columnInfo>> columnList;
     for (const auto &col : tinfo.columns) {
       columnList.push_back(col);
+      cout<<col.first<<endl;
     }
 
     // 4. Validate each value
@@ -239,15 +240,16 @@ int main() {
 
   // Define columns for a new table
   unordered_map<string, columnInfo> columns;
-  columns["id"] = {"int", 3};          // max value = 999
-  columns["name"] = {"string", 10};    // up to 10 characters
   columns["active"] = {"bool", 5};     // "true"/"false" or "0"/"1"
+  columns["name"] = {"string", 10};    // up to 10 characters
+  columns["id"] = {"int", 3};          // max value = 999
+  columns["age"] = {"bool",5};
 
   // Create a table called "users"
   db.createTable("users", columns);
 
   // Insert a valid row into the "users" table
-  vector<string> row1 = {"101", "alice", "true"};
+  vector<string> row1 = {"false","101", "alice", "true"};
   db.insertIntoTable("users", row1);
 
   return 0;
