@@ -25,6 +25,8 @@ private:
 
 public:
   dataBase(string n) : name(n) {
+    dbFile.open(name+".meta",ios::out);
+    dbFile.close();
     dbFile.open(name + ".meta", ios::in | ios::out);
   }
 
@@ -76,7 +78,8 @@ public:
     dbFile.seekg(0);
   }
 
-  void createTable(string tableName,unordered_map<string, columnInfo> columns) {
+  void createTable(string tableName,
+                   unordered_map<string, columnInfo> columns) {
     // 1. Check if table already exists
     if (tables.find(tableName) != tables.end()) {
       cerr << "Table '" << tableName << "' already exists.\n";
@@ -133,6 +136,7 @@ public:
     vector<pair<string, columnInfo>> columnList;
     for (const auto &col : tinfo.columns) {
       columnList.push_back(col);
+      cout<<col.first<<endl;
     }
 
     // 4. Validate each value
@@ -151,8 +155,7 @@ public:
           }
         }
       } else if (colInfo.dataType == "bool") {
-        if (!(value == "true" || value == "false" || value == "0" ||
-              value == "1")) {
+        if (!(value == "true" || value == "false")) {
           cerr << "Invalid bool value for column " << colName << ": " << value
                << "\n";
           return;
@@ -185,6 +188,69 @@ public:
     }
 
     // All checks passed, insert the data
-    // insert(tableName, values);
+    insert(tableName, values);
+  }
+
+  void insert(const string &tableName, const vector<string> &values) {
+    if (tables.find(tableName) == tables.end()) {
+      cerr << "Table '" << tableName << "' not found.\n";
+      return;
+    }
+
+    const tableInfo &tinfo = tables[tableName];
+
+    // Open .tbl file in binary append mode
+    fstream dataFile(tableName + ".tbl", ios::out | ios::binary | ios::app);
+    if (!dataFile.is_open()) {
+      cerr << "Failed to open .tbl file for table: " << tableName << endl;
+      return;
+    }
+
+    // Preserve column order
+    vector<pair<string, columnInfo>> orderedColumns;
+    for (const auto &col : tinfo.columns) {
+      orderedColumns.push_back(col);
+    }
+
+    for (size_t i = 0; i < values.size(); ++i) {
+      const string &val = values[i];
+      const columnInfo &col = orderedColumns[i].second;
+
+      // Pad/truncate the value to the defined column size
+      string padded = val.substr(0, col.size);
+      padded.resize(col.size, '\0'); // pad with null characters
+
+      // Write to binary file
+      dataFile.write(padded.c_str(), col.size);
+    }
+
+    dataFile.close();
   }
 };
+
+
+
+
+int main() {
+  // Create database
+  dataBase db("myDB");
+
+  // Load tables from the main metadata file (if any)
+  db.loadTables();
+
+  // Define columns for a new table
+  unordered_map<string, columnInfo> columns;
+  columns["active"] = {"bool", 5};     // "true"/"false" or "0"/"1"
+  columns["name"] = {"string", 10};    // up to 10 characters
+  columns["id"] = {"int", 3};          // max value = 999
+  columns["age"] = {"bool",5};
+
+  // Create a table called "users"
+  db.createTable("users", columns);
+
+  // Insert a valid row into the "users" table
+  vector<string> row1 = {"false","101", "alice", "true"};
+  db.insertIntoTable("users", row1);
+
+  return 0;
+}
