@@ -1,10 +1,10 @@
 #include "unordered_map"
-#include <math.h>
-#include <vector>
 #include <fstream>
 #include <iostream>
+#include <math.h>
 #include <sstream>
 #include <unordered_map>
+#include <vector>
 using namespace std;
 
 struct columnInfo {
@@ -75,7 +75,43 @@ public:
     dbFile.clear(); // reset flags in case of EOF
     dbFile.seekg(0);
   }
-  void createTable(string tableName,unordered_map<string,columnInfo> columns){}
+
+  void createTable(string tableName,unordered_map<string, columnInfo> columns) {
+    // 1. Check if table already exists
+    if (tables.find(tableName) != tables.end()) {
+      cerr << "Table '" << tableName << "' already exists.\n";
+      return;
+    }
+
+    // 2. Create metadata file
+    fstream metaFile(tableName + ".meta", ios::out);
+    if (!metaFile.is_open()) {
+      cerr << "Failed to create metadata file for table: " << tableName << endl;
+      return;
+    }
+
+    // 3. Write table header: tableName columnCount (as string)
+    metaFile << tableName << " " << to_string(columns.size()) << "\n";
+
+    // 4. Write each column's metadata: colName dataType size (as string)
+    for (const auto &col : columns) {
+      metaFile << col.first << " " << col.second.dataType << " "
+               << to_string(col.second.size) << "\n";
+    }
+
+    metaFile.close();
+
+    // 5. Add table to in-memory tables map
+    tableInfo tinfo;
+    tinfo.columnCount = columns.size();
+    tinfo.columns = columns;
+    tables[tableName] = tinfo;
+
+    // 6. Append this table name to the main DB metadata file
+    dbFile.clear();            // clear EOF flag if set
+    dbFile.seekp(0, ios::end); // move to end for appending
+    dbFile << tableName << ",";
+  }
 
   void insertIntoTable(string tableName, const vector<string> &values) {
     // 1. Check if the table exists
@@ -151,5 +187,4 @@ public:
     // All checks passed, insert the data
     // insert(tableName, values);
   }
-
 };
