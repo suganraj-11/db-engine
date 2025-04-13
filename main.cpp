@@ -225,3 +225,29 @@ public:
     dataFile.close();
   }
 };
+
+
+
+
+int main() {
+  // Create database
+  dataBase db("myDB");
+
+  // Load tables from the main metadata file (if any)
+  db.loadTables();
+
+  // Define columns for a new table
+  unordered_map<string, columnInfo> columns;
+  columns["id"] = {"int", 3};          // max value = 999
+  columns["name"] = {"string", 10};    // up to 10 characters
+  columns["active"] = {"bool", 5};     // "true"/"false" or "0"/"1"
+
+  // Create a table called "users"
+  db.createTable("users", columns);
+
+  // Insert a valid row into the "users" table
+  vector<string> row1 = {"101", "alice", "true"};
+  db.insertIntoTable("users", row1);
+
+  return 0;
+}
