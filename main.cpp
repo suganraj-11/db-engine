@@ -1,131 +1,155 @@
-#include "fstream"
-#include <array>
-#include <iostream>
-#include <string>
+#include "unordered_map"
+#include <math.h>
 #include <vector>
-
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <unordered_map>
 using namespace std;
 
-class dataBase {
-public:
-  string dbName;
-  vector<string> tables;
-
-  dataBase(string n) : dbName(n) {
-    fstream file(dbName + ".tables", ios::out);
-    file.close();
-    loadTables();
-  }
-
-  // Load the table names into the tables vector
-  void loadTables() {
-    string fileName = dbName + ".tables";
-    fstream file(fileName, ios::in | ios::out);
-    if (file) {
-      string line;
-      while (getline(file, line, ',')) {
-        tables.push_back(line);
-      }
-      return;
-    }
-    cout << "Error opening file" << endl;
-  }
-
-  void createTable(string tableName, vector<array<string, 3>> columns) {
-    string fileName = tableName + ".meta";
-    fstream file(fileName, ios::in);
-    if (file) {
-      cout << "Table with the name " << tableName << " already exists" << endl;
-      file.close();
-      return;
-    }
-    file.close();
-    file.open(fileName, ios::out);
-    if (!file) {
-      cout << endl << "Error creating file" << endl;
-      file.close();
-      return;
-    }
-    string fileName2 = dbName + ".tables";
-    fstream file2(fileName2, ios::out);
-    if (file2 << tableName << ",") {
-      tables.push_back(tableName);
-    }
-    file << tableName << endl;
-    for (auto v : columns) {
-      file << v[0] << "," << v[1] << "," << v[2] << endl;
-    }
-    cout << "Table created successfully" << endl;
-    file.close();
-
-    return;
-  }
-
-  void getTables() {
-    cout << "Tables:" << endl;
-    int i = 1;
-    for (string table : tables) {
-      cout << i << ":" << table << endl;
-    }
-    return;
-  }
+struct columnInfo {
+  string dataType;
+  int size;
 };
 
-int main() {
-  // string tableName = "table1";
-  // vector<array<string, 3>> columns = {{"sno", "int", "4"},
-  //                                     {"name", "string", "15"},
-  //                                     {"phone number", "int", "10"}};
-  // dataBase db1("dbTest");
-  // db1.createTable(tableName, columns);
-  // db1.getTables();
-  //
-  // string tableName2 = "table2";
-  // vector<array<string, 3>> columns2 = {{"sno2", "int", "4"},
-  //                                     {"name2", "string", "15"},
-  //                                     {"phone number2", "int", "10"}};
-  // dataBase db2("dbTest2");
-  // db2.createTable(tableName2, columns2);
-  // db2.getTables();
-  int choice,fields;
-  string tableName;
-  dataBase db("Db");
-  cout << "1.create table \n2.Insert into table \n3.show all the current "
-          "tables\n";
-  while (true) {
-    cout << "\nEnter your choice:";
-    cin >> choice;
-    switch(choice){
-      case 1:
-        vector<array<string,3>> columns;
-        array<string,3> y;
-        cout<<"\nEnter the table name:";
-        cin>>tableName;
-        cout<<"\nEnter the number of columns:";
-        cin>>fields;
-        for(int i=0;i<fields;i++){
-          cout<<"\nEnter the "<<i<<" field name";
-          cin>>y[0];
-          cout<<"\nEnter the "<<i<<" field's datatype";
-          cin>>y[1];
-          cout<<"\nEnter the "<<i<<" field's size";
-          cin>>y[2];
-          columns.push_back(y);
-        }
-        db.createTable(tableName,columns);
-        break;
-      case 2:
-        int no;
-        db.getTables();
-        cout<<"Enter the table number:";
-        cin>>no;
-        break;
-        
-        
+struct tableInfo {
+  int columnCount;
+  unordered_map<string, columnInfo> columns;
+};
 
+class dataBase {
+private:
+  string name;
+  fstream dbFile;
+  unordered_map<string, tableInfo> tables;
 
-    }
+public:
+  dataBase(string n) : name(n) {
+    dbFile.open(name + ".meta", ios::in | ios::out);
   }
 
-  return 0;
-}
+  void loadTables() {
+    if (!dbFile.is_open())
+      return;
+
+    // Read the entire table list (comma-separated)
+    string tablesLine;
+    getline(dbFile, tablesLine);
+    stringstream tableNamesStream(tablesLine);
+    string tableName;
+
+    while (getline(tableNamesStream, tableName, ',')) {
+      if (tableName.empty())
+        continue;
+
+      fstream metaFile(tableName + ".meta", ios::in);
+      if (!metaFile.is_open()) {
+        cerr << "Failed to open metadata file for table: " << tableName << endl;
+        continue;
+      }
+
+      string headerLine;
+      getline(metaFile, headerLine);
+      stringstream metaHeader(headerLine);
+
+      string nameFromFile, columnCountStr;
+      metaHeader >> nameFromFile >> columnCountStr;
+
+      tableInfo tinfo;
+      tinfo.columnCount = stoi(columnCountStr);
+
+      string colLine;
+      while (getline(metaFile, colLine)) {
+        stringstream iss(colLine);
+        string colName, colType, sizeStr;
+        iss >> colName >> colType >> sizeStr;
+
+        int colSize = stoi(sizeStr);
+        tinfo.columns[colName] = {colType, colSize};
+      }
+
+      tables[tableName] = tinfo;
+      metaFile.close();
+    }
+
+    dbFile.clear(); // reset flags in case of EOF
+    dbFile.seekg(0);
+  }
+  void createTable(string tableName,unordered_map<string,columnInfo> columns){}
+
+  void insertIntoTable(string tableName, const vector<string> &values) {
+    // 1. Check if the table exists
+    if (tables.find(tableName) == tables.end()) {
+      cerr << "Table " << tableName << " does not exist.\n";
+      return;
+    }
+
+    tableInfo &tinfo = tables[tableName];
+
+    // 2. Check if value count matches column count
+    if (values.size() != tinfo.columnCount) {
+      cerr << "Expected " << tinfo.columnCount << " values, but got "
+           << values.size() << ".\n";
+      return;
+    }
+
+    // 3. Get column info in insertion order
+    vector<pair<string, columnInfo>> columnList;
+    for (const auto &col : tinfo.columns) {
+      columnList.push_back(col);
+    }
+
+    // 4. Validate each value
+    for (int i = 0; i < values.size(); ++i) {
+      string value = values[i];
+      string colName = columnList[i].first;
+      columnInfo &colInfo = columnList[i].second;
+
+      // Type check
+      if (colInfo.dataType == "int") {
+        for (char c : value) {
+          if (!isdigit(c)) {
+            cerr << "Invalid int value for column " << colName << ": " << value
+                 << "\n";
+            return;
+          }
+        }
+      } else if (colInfo.dataType == "bool") {
+        if (!(value == "true" || value == "false" || value == "0" ||
+              value == "1")) {
+          cerr << "Invalid bool value for column " << colName << ": " << value
+               << "\n";
+          return;
+        }
+      } else if (colInfo.dataType == "string") {
+        // strings are allowed anything, so no check
+      } else {
+        cerr << "Unknown datatype " << colInfo.dataType << " for column "
+             << colName << "\n";
+        return;
+      }
+
+      // Size check
+      if (value.size() > colInfo.size) {
+        cerr << "Value '" << value << "' exceeds size limit (" << colInfo.size
+             << ") for column " << colName << "\n";
+        return;
+      }
+
+      // For int types, check numeric size (e.g., 99 for size = 2)
+      if (colInfo.dataType == "int") {
+        int numeric = stoi(value);
+        int maxVal = pow(10, colInfo.size) - 1;
+        if (numeric > maxVal) {
+          cerr << "Integer value " << numeric << " exceeds max allowed "
+               << maxVal << " for column " << colName << "\n";
+          return;
+        }
+      }
+    }
+
+    // All checks passed, insert the data
+    // insert(tableName, values);
+  }
+
+};
