@@ -149,12 +149,6 @@ public:
       return;
     }
 
-    // 3. Get column info in insertion order
-    // vector<pair<string, columnInfo>> columnList;
-    // for (const auto &col : tinfo.columns) {
-    //   columnList.push_back(col);
-    //   cout<<col.first<<endl;
-    // }
 
     // 4. Validate each value
     for (int i = 0; i < values.size(); ++i) {
@@ -227,41 +221,6 @@ public:
     return;
   }
 
-  // void insert(const string &tableName, const vector<string> &values) {
-  //   if (tables.find(tableName) == tables.end()) {
-  //     cerr << "Table '" << tableName << "' not found.\n";
-  //     return;
-  //   }
-  //
-  //   const tableInfo &tinfo = tables[tableName];
-  //
-  //   // Open .tbl file in binary append mode
-  //   fstream dataFile(tableName + ".tbl", ios::out | ios::binary | ios::app);
-  //   if (!dataFile.is_open()) {
-  //     cerr << "Failed to open .tbl file for table: " << tableName << endl;
-  //     return;
-  //   }
-  //
-  //   // Preserve column order
-  //   vector<pair<string, columnInfo>> orderedColumns;
-  //   for (const auto &col : tinfo.columns) {
-  //     orderedColumns.push_back(col);
-  //   }
-  //
-  //   for (size_t i = 0; i < values.size(); ++i) {
-  //     const string &val = values[i];
-  //     const columnInfo &col = orderedColumns[i].second;
-  //
-  //     // Pad/truncate the value to the defined column size
-  //     string padded = val.substr(0, col.size);
-  //     padded.resize(col.size, '\0'); // pad with null characters
-  //
-  //     // Write to binary file
-  //     dataFile.write(padded.c_str(), col.size);
-  //   }
-  //
-  //   dataFile.close();
-  // }
 };
 
 int main() {
@@ -273,21 +232,26 @@ int main() {
 
   // Define columns for a new table
   vector<pair<string, columnInfo>> columns;
-  // columns["active"] = {"bool", 5};     // "true"/"false" or "0"/"1"
-  // columns["name"] = {"string", 10};    // up to 10 characters
-  // columns["id"] = {"int", 3};          // max value = 999
-  // columns["age"] = {"bool",5};
   columns.push_back({"active", {"bool", 5}});
   columns.push_back({"id", {"int", 3}});
   columns.push_back({"name", {"string", 10}});
   columns.push_back({"age", {"int", 3}});
 
+  vector<pair<string, columnInfo>> column2;
+  column2.push_back({"sno", {"int", 3}});
+  column2.push_back({"name", {"string", 15}});
+  column2.push_back({"roll_no.", {"int", 4}});
+  column2.push_back({"degree", {"string", 10}});
+
   // Create a table called "users"
   db.createTable("users", columns);
+  db.createTable("college_details", column2);
 
+  vector<string> row2 = {"001", "Lucy", "5042", "B.Tech_IT"};
   // Insert a valid row into the "users" table
   vector<string> row1 = {"false", "101", "alice", "20"};
   db.insertIntoTable("users", row1);
+  db.insertIntoTable("college_details",row2);
 
   return 0;
 }
