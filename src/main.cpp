@@ -1,4 +1,6 @@
 #include "unordered_map"
+#include "algorithm"
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <math.h>
@@ -149,7 +151,6 @@ public:
       return;
     }
 
-
     // 4. Validate each value
     for (int i = 0; i < values.size(); ++i) {
       string value = values[i];
@@ -210,17 +211,80 @@ public:
       return;
     }
     char flag = 1;
-    metaFile.write(&flag,1);
+    metaFile.write(&flag, 1);
 
     for (int i = 0; i < values.size(); i++) {
-      string padded = values[i].substr(0, tables2[tableName].columns[i].second.size);
+      string padded =
+          values[i].substr(0, tables2[tableName].columns[i].second.size);
       padded.resize(tables2[tableName].columns[i].second.size, '\0');
       metaFile.write(padded.c_str(), tables2[tableName].columns[i].second.size);
     }
     metaFile.close();
     return;
   }
+  void selectAll(const string &tableName) {
+    if (tables2.find(tableName) == tables2.end()) {
+      cout << "Table not found\n";
+      return;
+    }
 
+    tableInfo2 &table = tables2[tableName];
+    const auto &columns = table.columns;
+
+    // Calculate size of each row (excluding the deletion flag)
+    int rowSize = 0;
+    for (const auto &[_, col] : columns)
+      rowSize += col.size;
+
+    fstream file(tableName + ".tbl", ios::in | ios::binary);
+    if (!file) {
+      cout << "Failed to open file\n";
+      return;
+    }
+
+    // Print column headers
+    for (const auto &[colName, _] : columns)
+      cout << colName << "\t";
+    cout << "\n";
+
+    while (true) {
+      char flag;
+      file.read(&flag, 1); // read the deletion flag
+      if (file.eof())
+        break;
+
+      vector<char> rowBuffer(rowSize);
+      file.read(rowBuffer.data(), rowSize);
+      if (file.gcount() < rowSize)
+        break;
+
+      if (flag != 1)
+        continue; // skip if marked as deleted
+
+      int offset = 0;
+      for (const auto &[colName, colInfo] : columns) {
+        string rawData(rowBuffer.data() + offset, colInfo.size);
+
+        if (colInfo.dataType == "int") {
+          int value;
+          memcpy(&value, rawData.data(), sizeof(int));
+          cout << value << "\t";
+        } else if (colInfo.dataType == "bool") {
+          bool b = (rawData[0] == '1' || rawData[0] == 't');
+          cout << (b ? "true" : "false") << "\t";
+        } else if (colInfo.dataType == "string") {
+          rawData.erase(find(rawData.begin(), rawData.end(), '\0'),
+                        rawData.end());
+          cout << rawData << "\t";
+        }
+
+        offset += colInfo.size;
+      }
+      cout << "\n";
+    }
+
+    file.close();
+  }
 };
 
 int main() {
@@ -251,7 +315,10 @@ int main() {
   // Insert a valid row into the "users" table
   vector<string> row1 = {"false", "101", "alice", "20"};
   db.insertIntoTable("users", row1);
-  db.insertIntoTable("college_details",row2);
+  db.insertIntoTable("college_details", row2);
+  db.selectAll("users");
+  cout<<endl;
+  db.selectAll("college_details");
 
   return 0;
 }
