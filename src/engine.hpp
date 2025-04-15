@@ -3,8 +3,6 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <string>
-#include <unordered_map>
 #include <vector>
 using namespace std;
 
@@ -38,19 +36,27 @@ private:
   vector<db *> dataBases;
 
 public:
-  engine() {}
+  engine() {
+    loadDb();
+  }
+
+  void printDb(){
+    cout<<"count:"<<dataBases.size();
+    for(auto &v:dataBases){
+      cout<<endl<<v->name;
+    }
+  }
 
   void loadDb() {
-    fstream file("engine.hpp", ios::in);
+    fstream file("engine.meta", ios::in);
     if(!file.is_open()){
-      cout<<"Error opening engine.hpp file\n";
+      cout<<"Error opening engine.meta file\n";
       return;
     }
     string line, word;
     getline(file, line);
     stringstream ss(line);
-    while (ss) {
-      ss >> word;
+    while (ss>>word) {
       dataBases.push_back(new db(word));
     }
   }
