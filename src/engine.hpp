@@ -18,7 +18,7 @@ public:
   string name;
   vector<column *> columns;
   table(string &n, vector<column *> &col) : name(n), columns(col) {
-    fstream file(n+".cols",ios::out);
+    fstream file(n + ".cols", ios::out);
     file.close();
   }
   void loadColumns() {
@@ -46,7 +46,7 @@ public:
   vector<table *> tables;
   string name;
   db(string &n) : name(n) {
-    fstream file(n+".tables",ios::out);
+    fstream file(n + ".tables", ios::out);
     file.close();
   }
 
@@ -128,7 +128,7 @@ public:
   engine() {
     loadDb();
     currDb = nullptr;
-    fstream file("egine.meta",ios::out);
+    fstream file("engine.meta", ios::out);
     file.close();
   }
 
@@ -167,9 +167,9 @@ public:
     }
     file << n << " ";
     file.close();
-    file.open(n + ".db", ios::out);
+    file.open(n + ".tables", ios::out);
     if (!file.is_open()) {
-      cout << "Error creating " << n << ".db file\n";
+      cout << "Error creating " << n << ".tables file\n";
       return;
     }
     file.close();
@@ -192,9 +192,7 @@ public:
   void create(string tableName, vector<column *> columns) {
     return currDb->createTable(tableName, columns);
   }
-  void printInfo() {
-    return currDb->printTables(); 
-  }
+  void printInfo() { return currDb->printTables(); }
 };
 
 #endif // !_ENGINE_H
