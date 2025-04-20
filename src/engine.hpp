@@ -1,9 +1,12 @@
+
 #ifndef _ENGINE_H
 #define _ENGINE_H
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <vector>
+
 using namespace std;
 
 class column {
@@ -17,22 +20,26 @@ class table {
 public:
   string name;
   vector<column *> columns;
+
   table(string &n, vector<column *> &col) : name(n), columns(col) {
     fstream file(n + ".cols", ios::out);
     file.close();
   }
+
   void loadColumns() {
     fstream file(name + ".cols", ios::in | ios::out);
     if (!file.is_open()) {
       cout << "Error opening " << name << ".cols file.\n";
       return;
     }
-    string line;
-    string colName, colType;
+
+    string line, colName, colType;
     getline(file, line);
     stringstream ss(line);
     ss >> name;
+
     while (getline(file, line)) {
+      ss.clear();
       ss.str(line);
       ss >> colName >> colType;
       columns.push_back(new column(colName, colType));
@@ -41,12 +48,12 @@ public:
 };
 
 class db {
-
 public:
   vector<table *> tables;
   string name;
+
   db(string &n) : name(n) {
-    fstream file(n + ".tables", ios::out);
+    fstream file(n + ".tables", ios::out | ios::app);
     file.close();
   }
 
@@ -56,30 +63,34 @@ public:
       cout << "Error opening " << name << ".tables file.\n";
       return;
     }
-    string word;
-    string line;
+
+    string word, line;
     getline(file, line);
     stringstream ss(line);
+
     while (ss >> word) {
       fstream file2(word + ".cols", ios::in | ios::out);
-      string line2;
-      stringstream ss2;
-      string colName, colType;
+      string line2, colName, colType;
       vector<column *> columns;
+      stringstream ss2;
+
       if (!file2.is_open()) {
         cout << "Error opening " << word << ".cols file.\n";
         return;
       }
-      getline(file2, line2);
+
+      getline(file2, line2); // skip table name line
       while (getline(file2, line2)) {
+        ss2.clear();
         ss2.str(line2);
         ss2 >> colName >> colType;
         columns.push_back(new column(colName, colType));
       }
+
       tables.push_back(new table(word, columns));
     }
-    return;
   }
+
   void createTable(string n, vector<column *> columns) {
     for (auto &v : tables) {
       if (v->name == n) {
@@ -87,27 +98,31 @@ public:
         return;
       }
     }
+
     fstream file(n + ".cols", ios::out);
     if (!file.is_open()) {
       cout << "Error opening file " << n << ".cols\n";
       return;
     }
-    file << n << " " << reinterpret_cast<char *>(columns.size()) << "endl";
+
+    file << n << " " << columns.size() << endl;
     for (auto &col : columns) {
       file << col->name << " " << col->type << endl;
     }
     file.close();
-    file.open(name + ".tables", ios::in | ios::out);
+
+    file.open(name + ".tables", ios::app);
     if (!file.is_open()) {
       cout << "Error opening " << name << ".tables file.\n";
       return;
     }
     file << n << " ";
     file.close();
+
     table *newTable = new table(n, columns);
     tables.push_back(newTable);
-    return;
   }
+
   void printTables() {
     for (auto &v : tables) {
       cout << v->name << ":" << endl;
@@ -122,18 +137,18 @@ public:
 class engine {
 private:
   vector<db *> dataBases;
-  db *currDb;
 
 public:
+  db *currDb;
   engine() {
     loadDb();
     currDb = nullptr;
-    fstream file("engine.meta", ios::out);
+    fstream file("engine.meta", ios::out | ios::app);
     file.close();
   }
 
   void printDb() {
-    cout << "count:" << dataBases.size();
+    cout << "count: " << dataBases.size();
     for (auto &v : dataBases) {
       cout << endl << v->name;
     }
@@ -145,34 +160,40 @@ public:
       cout << "Error opening engine.meta file\n";
       return;
     }
+
     string line, word;
     getline(file, line);
     stringstream ss(line);
+
     while (ss >> word) {
       dataBases.push_back(new db(word));
     }
   }
+
   void createDb(string n) {
     for (auto &v : dataBases) {
       if (v->name == n) {
-        cout << "Database with the name " << n << "already exists \n";
+        cout << "Database with the name " << n << " already exists.\n";
         return;
       }
     }
-    fstream file;
-    file.open("engine.meta", ios::out);
+
+    fstream file("engine.meta", ios::out | ios::app);
     if (!file.is_open()) {
-      cout << "Error opening engine.meta  file \n";
+      cout << "Error opening engine.meta file\n";
       return;
     }
+
     file << n << " ";
     file.close();
+
     file.open(n + ".tables", ios::out);
     if (!file.is_open()) {
       cout << "Error creating " << n << ".tables file\n";
       return;
     }
     file.close();
+
     db *Db = new db(n);
     dataBases.push_back(Db);
   }
@@ -186,13 +207,7 @@ public:
       }
     }
     cout << "Database " << n << " not found.\n";
-    return;
   }
-
-  void create(string tableName, vector<column *> columns) {
-    return currDb->createTable(tableName, columns);
-  }
-  void printInfo() { return currDb->printTables(); }
 };
 
-#endif // !_ENGINE_H
+#endif // _ENGINE_H
