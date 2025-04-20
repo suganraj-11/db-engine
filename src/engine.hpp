@@ -17,7 +17,10 @@ class table {
 public:
   string name;
   vector<column *> columns;
-  table(string &n, vector<column *> &col) : name(n), columns(col) {}
+  table(string &n, vector<column *> &col) : name(n), columns(col) {
+    fstream file(n+".cols",ios::out);
+    file.close();
+  }
   void loadColumns() {
     fstream file(name + ".cols", ios::in | ios::out);
     if (!file.is_open()) {
@@ -42,7 +45,10 @@ class db {
 public:
   vector<table *> tables;
   string name;
-  db(string &n) : name(n) {}
+  db(string &n) : name(n) {
+    fstream file(n+".tables",ios::out);
+    file.close();
+  }
 
   void loadTables() {
     fstream file(name + ".tables", ios::in | ios::out);
@@ -102,17 +108,28 @@ public:
     tables.push_back(newTable);
     return;
   }
+  void printTables() {
+    for (auto &v : tables) {
+      cout << v->name << ":" << endl;
+      cout << "---------------------------" << endl;
+      for (auto &t : v->columns) {
+        cout << t->name << "\t" << t->type << endl;
+      }
+    }
+  }
 };
 
 class engine {
 private:
   vector<db *> dataBases;
-  db* currDb;
+  db *currDb;
 
 public:
-  engine() { 
+  engine() {
     loadDb();
-    currDb=nullptr;
+    currDb = nullptr;
+    fstream file("egine.meta",ios::out);
+    file.close();
   }
 
   void printDb() {
@@ -162,14 +179,21 @@ public:
 
   void selectDb(string n) {
     for (auto &v : dataBases) {
-      if (v->name == n){
+      if (v->name == n) {
         currDb = v;
-        cout<<"Database "<<n<<" selected.\n";
+        cout << "Database " << n << " selected.\n";
         return;
       }
     }
     cout << "Database " << n << " not found.\n";
     return;
+  }
+
+  void create(string tableName, vector<column *> columns) {
+    return currDb->createTable(tableName, columns);
+  }
+  void printInfo() {
+    return currDb->printTables(); 
   }
 };
 
