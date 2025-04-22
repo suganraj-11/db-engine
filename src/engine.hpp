@@ -22,7 +22,7 @@ public:
     file.close();
   }
   void loadColumns() {
-    fstream file(name + ".cols", ios::in | ios::out);
+    fstream file(name + ".cols", ios::in);
     if (!file.is_open()) {
       cout << "Error opening " << name << ".cols file.\n";
       return;
@@ -51,7 +51,7 @@ public:
   }
 
   void loadTables() {
-    fstream file(name + ".tables", ios::in | ios::out);
+    fstream file(name + ".tables", ios::in);
     if (!file.is_open()) {
       cout << "Error opening " << name << ".tables file.\n";
       return;
@@ -87,7 +87,7 @@ public:
         return;
       }
     }
-    fstream file(n + ".cols", ios::out);
+    fstream file(n + ".cols", ios::out|ios::app);
     if (!file.is_open()) {
       cout << "Error opening file " << n << ".cols\n";
       return;
@@ -97,7 +97,7 @@ public:
       file << col->name << " " << col->type << endl;
     }
     file.close();
-    file.open(name + ".tables", ios::in | ios::out);
+    file.open(name + ".tables",ios::out|ios::app);
     if (!file.is_open()) {
       cout << "Error opening " << name << ".tables file.\n";
       return;
@@ -160,7 +160,7 @@ public:
       }
     }
     fstream file;
-    file.open("engine.meta", ios::out);
+    file.open("engine.meta", ios::out|ios::app);
     if (!file.is_open()) {
       cout << "Error opening engine.meta  file \n";
       return;
