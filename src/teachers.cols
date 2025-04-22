@@ -1,4 +1,4 @@
-students 3
+teachers 3
 id int
 name string
 cgpa float
