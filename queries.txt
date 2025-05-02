@@ -1,0 +1,26 @@
+---commands---
+
+crt(tableName,{<(columnName,datatype),})
+ins(tableName,{<values,>})
+sel(tableName,{<columName>},{<(condition)>})
+del(tableName,{<(condition)>})
+upd(tableName,{<columName=value>},{<(conditions)>})
+
+
+<> represents a list of values enclosed within it
+
+
+example:
+
+
+-> create: crt(users,{(id,int),(name,string),(active,bool)})
+
+-> insert: ins(users,{100,jake,true})
+
+-> select: sel(users,{id,name},{(id>200)||(name=jake)})
+
+-> delete: del(users,{(id=100)&&(name=jake)})
+
+-> update: upd(users,{(name=paul),(id=101)},{(name=jake)})
+
+
